@@ -1,0 +1,166 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #050914;
+  color: #e6f4ff;
+  font-family: Arial, sans-serif;
+}
+
+.terminal {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at center, #10243b 0%, #050914 65%);
+  padding: 25px;
+}
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  color: #6c9fbd;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.terminal-header span,
+.system-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-content {
+  min-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.radar {
+  margin-bottom: 35px;
+}
+
+.radar-circle {
+  width: 190px;
+  height: 190px;
+  border: 1px solid #24658a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #55c8f5;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 35px #0876aa33;
+}
+
+.radar-circle::before,
+.radar-circle::after {
+  content: "";
+  position: absolute;
+  border: 1px solid #24658a66;
+  border-radius: 50%;
+}
+
+.radar-circle::before {
+  width: 65%;
+  height: 65%;
+}
+
+.radar-circle::after {
+  width: 35%;
+  height: 35%;
+}
+
+.radar-sweep {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  top: 0;
+  left: 50%;
+  transform-origin: bottom left;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    #42d9ff55
+  );
+  animation: sweep 4s linear infinite;
+}
+
+@keyframes sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.system-label {
+  color: #5bc9f3;
+  font-size: 12px;
+  letter-spacing: 4px;
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-size: clamp(32px, 6vw, 65px);
+  letter-spacing: 7px;
+  color: #ffffff;
+  text-shadow: 0 0 25px #40b9e9;
+}
+
+h2 {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 4px;
+  color: #79a9c5;
+  margin-top: 15px;
+}
+
+.description {
+  max-width: 520px;
+  color: #9bb4c7;
+  line-height: 1.8;
+  margin: 30px 20px;
+}
+
+.start-button {
+  background: transparent;
+  border: 1px solid #42c5ef;
+  color: #73d9ff;
+  padding: 16px 35px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.start-button:hover {
+  background: #1688b533;
+  box-shadow: 0 0 25px #1688b577;
+}
+
+.footer-message {
+  margin-top: 45px;
+  font-size: 10px;
+  color: #54758b;
+  letter-spacing: 3px;
+}
+
+@media (max-width: 600px) {
+  .terminal-header {
+    font-size: 8px;
+    gap: 10px;
+  }
+
+  h2 {
+    line-height: 1.8;
+  }
+
+  .description {
+    font-size: 14px;
+  }
+}
