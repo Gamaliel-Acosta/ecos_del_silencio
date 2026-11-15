@@ -23,6 +23,7 @@ import OpportunityGame from "./games/opportunity/OpportunityGame";
 import Pioneer10Game from "./games/pioneer-10/Pioneer10Game";
 
 import { audioService } from "./services/audio.service";
+import { resetMissionProgress } from "./services/progress.service";
 
 type Sector = "all" | "moon" | "mars" | "deep-space";
 type Screen = "terminal" | "radar" | "mission" | "game";
@@ -64,7 +65,6 @@ function App() {
   // SISTEMA DE AUDIO
   // ========================================
 
-  // Cambia la música dependiendo de la pantalla.
   useEffect(() => {
     const track =
       screen === "terminal"
@@ -76,8 +76,6 @@ function App() {
     void audioService.setMusic(track);
   }, [screen]);
 
-  // Desbloquea la reproducción cuando el usuario
-  // realiza su primera interacción con la aplicación.
   useEffect(() => {
     const unlockAudio = () => {
       void audioService.unlock();
@@ -94,6 +92,10 @@ function App() {
     };
   }, []);
 
+  // ========================================
+  // FILTRADO DE RELIQUIAS
+  // ========================================
+
   const filteredArtifacts = useMemo(() => {
     return artifacts.filter((artifact) => {
       const matchesSector =
@@ -109,9 +111,17 @@ function App() {
     });
   }, [sector, search]);
 
+  // ========================================
+  // NAVEGACIÓN
+  // ========================================
+
   const openMission = (artifact: Artifact) => {
     setSelected(artifact);
+
+    // Cada vez que se abre un expediente se inicia
+    // una nueva sesión de consulta o expedición.
     setExpeditionStarted(false);
+
     setScreen("mission");
   };
 
@@ -123,12 +133,14 @@ function App() {
       selected.id === "opportunity" ||
       selected.id === "pioneer-10"
     ) {
+      // Garantiza que una partida nueva comience
+      // con la memoria de la misión reiniciada.
+      resetMissionProgress(selected.id);
+
       setScreen("game");
       return;
     }
 
-    // Ingenuity y las demás reliquias sin minijuego
-    // conservan su expediente, pero no inician un juego.
     setExpeditionStarted(true);
   };
 
@@ -142,6 +154,15 @@ function App() {
     setScreen("terminal");
     setSelected(null);
     setExpeditionStarted(false);
+  };
+
+  // ========================================
+  // FINALIZACIÓN DE EXPEDICIÓN
+  // ========================================
+
+  const handleMissionComplete = () => {
+    setExpeditionStarted(true);
+    setScreen("mission");
   };
 
   // ========================================
@@ -202,10 +223,7 @@ function App() {
     return (
       <LunarRoverGame
         onExit={() => setScreen("mission")}
-        onComplete={() => {
-          setExpeditionStarted(true);
-          setScreen("mission");
-        }}
+        onComplete={handleMissionComplete}
       />
     );
   }
@@ -214,10 +232,7 @@ function App() {
     return (
       <OpportunityGame
         onExit={() => setScreen("mission")}
-        onComplete={() => {
-          setExpeditionStarted(true);
-          setScreen("mission");
-        }}
+        onComplete={handleMissionComplete}
       />
     );
   }
@@ -226,10 +241,7 @@ function App() {
     return (
       <Pioneer10Game
         onExit={() => setScreen("mission")}
-        onComplete={() => {
-          setExpeditionStarted(true);
-          setScreen("mission");
-        }}
+        onComplete={handleMissionComplete}
       />
     );
   }
@@ -388,7 +400,7 @@ function App() {
                     {isPioneer
                       ? "Has completado la travesía orbital y recuperado el expediente histórico de Pioneer 10."
                       : hasMinigame
-                        ? `Has recuperado los cinco componentes virtuales y completado la reconstrucción de ${selected.name}. La expedición ha finalizado correctamente.`
+                        ? `Has recuperado los componentes virtuales y completado la reconstrucción de ${selected.name}. La expedición ha finalizado correctamente.`
                         : `Has consultado el expediente histórico de ${selected.name}. Su minijuego estará disponible en una futura actualización.`}
                   </p>
                 </div>

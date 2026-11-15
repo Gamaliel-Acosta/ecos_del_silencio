@@ -78,6 +78,9 @@ export const updateMissionProgress = (
 
     if (!current) return progress;
 
+    // Evita guardar avances si la misión ya está marcada como completada.
+    if (current.completed) return progress;
+
     progress.missions[missionId] = {
         ...current,
         collectedParts: Math.max(
@@ -99,9 +102,12 @@ export const completeMission = (
 
     if (!current) return progress;
 
+    // La victoria reinicia la memoria de la misión
+    // para permitir que el jugador vuelva a iniciarla.
     progress.missions[missionId] = {
         ...current,
-        completed: true,
+        collectedParts: 0,
+        completed: false,
         updatedAt: Date.now(),
     };
 
