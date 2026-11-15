@@ -1,9 +1,27 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ArrowLeft, Battery, Check, Compass, Gauge, Map,
-    Radio, RotateCcw, Satellite, Zap,
+    ArrowLeft,
+    Battery,
+    Check,
+    Compass,
+    Gauge,
+    Map,
+    Radio,
+    RotateCcw,
+    Satellite,
+    Zap,
 } from "lucide-react";
+
+import {
+    getMissionProgress,
+    updateMissionProgress,
+    completeMission,
+    resetMissionProgress,
+} from "../../services/progress.service";
+
+import { speechService } from "../../services/speech.service";
+
 import "./opportunity.css";
 
 interface OpportunityGameProps {
@@ -137,11 +155,23 @@ function createParts(): Part[] {
 
 const INITIAL_PARTS = createParts();
 
+function getRestoredParts(): Part[] {
+    const saved = getMissionProgress("opportunity").collectedParts;
+
+    return INITIAL_PARTS.map((part, index) => ({
+        ...part,
+        collected: index < saved,
+    }));
+}
+
 export default function OpportunityGame({
     onExit,
     onComplete,
 }: OpportunityGameProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    const [parts, setParts] = useState<Part[]>(getRestoredParts);
+    const partsRef = useRef<Part[]>(getRestoredParts());
 
     const roverRef = useRef<Rover>({
         x: 160,
@@ -151,15 +181,10 @@ export default function OpportunityGame({
         battery: 100,
     });
 
-    const partsRef = useRef<Part[]>(
-        INITIAL_PARTS.map(p => ({ ...p })),
-    );
-
     const keysRef = useRef(new Set<string>());
     const frameRef = useRef(0);
     const completedRef = useRef(false);
 
-    const [parts, setParts] = useState(INITIAL_PARTS);
     const [battery, setBattery] = useState(100);
     const [speed, setSpeed] = useState(0);
     const [boost, setBoost] = useState(false);
@@ -171,11 +196,13 @@ export default function OpportunityGame({
     const [storyIndex, setStoryIndex] = useState<number | null>(null);
     const [assembled, setAssembled] = useState<number[]>([]);
     const [selectedPiece, setSelectedPiece] = useState<number | null>(null);
-    const [puzzleOpen, setPuzzleOpen] = useState(false);
+    const [puzzleOpen, setPuzzleOpen] = useState(
+        () => getMissionProgress("opportunity").collectedParts === 5,
+    );
 
     const collectedCount = parts.filter(p => p.collected).length;
 
-    // Coloca una pieza en su posición correspondiente.
+    // Selección y colocación de componentes en el rompecabezas.
     const handleAssembly = (slot: number) => {
         if (selectedPiece === null) return;
 
@@ -188,23 +215,50 @@ export default function OpportunityGame({
         setSelectedPiece(null);
     };
 
-    // Las notas históricas desaparecen automáticamente.
+    // Controla el tiempo que permanece visible cada transmisión.
     useEffect(() => {
         if (storyIndex === null) return;
 
         const timeout = window.setTimeout(() => {
             setStoryIndex(null);
 
-            // Después del quinto fragmento se abre la reconstrucción.
             if (collectedCount === 5) {
                 setPuzzleOpen(true);
             }
-        }, 5200);
+        }, 15000);
 
         return () => window.clearTimeout(timeout);
     }, [storyIndex, collectedCount]);
 
-    // Finalización automática al ensamblar las cinco piezas.
+    // Reproduce el sonido de apertura y después narra la historia.
+    useEffect(() => {
+        if (storyIndex === null) {
+            speechService.stop();
+            return;
+        }
+
+        const story = STORIES[storyIndex];
+
+        if (!story) {
+            speechService.stop();
+            return;
+        }
+
+        void speechService.read(story.text);
+
+        return () => {
+            speechService.stop();
+        };
+    }, [storyIndex]);
+
+    // Detiene cualquier narración si el juego se desmonta.
+    useEffect(() => {
+        return () => {
+            speechService.stop();
+        };
+    }, []);
+
+    // Finalización automática después de ensamblar los componentes.
     useEffect(() => {
         if (
             assembled.length !== PART_NAMES.length ||
@@ -218,15 +272,27 @@ export default function OpportunityGame({
             if (completedRef.current) return;
 
             completedRef.current = true;
+
+            speechService.stop();
+            completeMission("opportunity");
+
             keysRef.current.clear();
             setPuzzleOpen(false);
+
             onComplete();
         }, 900);
 
         return () => window.clearTimeout(timeout);
     }, [assembled, puzzleOpen, onComplete]);
 
+    // Reinicia la expedición y cancela cualquier lectura activa.
     const resetGame = () => {
+        speechService.stop();
+
+        resetMissionProgress("opportunity");
+
+        const freshParts = INITIAL_PARTS.map(p => ({ ...p }));
+
         roverRef.current = {
             x: 160,
             y: 160,
@@ -235,11 +301,11 @@ export default function OpportunityGame({
             battery: 100,
         };
 
-        partsRef.current = INITIAL_PARTS.map(p => ({ ...p }));
+        partsRef.current = freshParts;
         completedRef.current = false;
         keysRef.current.clear();
 
-        setParts(INITIAL_PARTS.map(p => ({ ...p })));
+        setParts(freshParts);
         setBattery(100);
         setSpeed(0);
         setBoost(false);
@@ -251,11 +317,14 @@ export default function OpportunityGame({
         setMessage("NUEVA EXPEDICIÓN A MARTE");
     };
 
+    // Salida de la expedición.
     const exitGame = useCallback(() => {
+        speechService.stop();
         keysRef.current.clear();
         onExit();
     }, [onExit]);
 
+    // Motor gráfico y lógica del rover.
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
@@ -289,7 +358,6 @@ export default function OpportunityGame({
             ctx.save();
             ctx.translate(-cameraX, -cameraY);
 
-            // Polvo marciano.
             for (let i = 0; i < 600; i++) {
                 const x = (i * 173) % WORLD.width;
                 const y = (i * 293) % WORLD.height;
@@ -303,7 +371,6 @@ export default function OpportunityGame({
                 ctx.fill();
             }
 
-            // Cráteres.
             CRATERS.forEach(c => {
                 const gradient = ctx.createRadialGradient(
                     c.x - 10,
@@ -328,7 +395,6 @@ export default function OpportunityGame({
                 ctx.stroke();
             });
 
-            // Rocas.
             ROCKS.forEach(r => {
                 ctx.fillStyle = "#603c30";
                 ctx.beginPath();
@@ -390,13 +456,11 @@ export default function OpportunityGame({
             ctx.translate(rover.x, rover.y);
             ctx.rotate(rover.angle);
 
-            // Sombra.
             ctx.fillStyle = "rgba(0,0,0,.35)";
             ctx.beginPath();
             ctx.ellipse(0, 10, 34, 23, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Ruedas.
             for (const x of [-23, 23]) {
                 for (const y of [-22, 22]) {
                     ctx.fillStyle = "#292725";
@@ -404,7 +468,6 @@ export default function OpportunityGame({
                 }
             }
 
-            // Chasis.
             ctx.fillStyle = "#d2a56d";
             ctx.strokeStyle = "#f4d5a2";
             ctx.lineWidth = 2;
@@ -413,17 +476,14 @@ export default function OpportunityGame({
             ctx.fill();
             ctx.stroke();
 
-            // Panel superior.
             ctx.fillStyle = "#416b78";
             ctx.fillRect(-15, -12, 30, 24);
 
-            // Cámara.
             ctx.fillStyle = "#d8f5ff";
             ctx.beginPath();
             ctx.arc(0, -24, 5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Brazo robótico.
             ctx.strokeStyle = "#e9c18b";
             ctx.lineWidth = 4;
             ctx.beginPath();
@@ -457,13 +517,9 @@ export default function OpportunityGame({
             ctx.fill();
             ctx.stroke();
 
-            const mapX = (px: number) =>
-                x + (px / WORLD.width) * size;
+            const mapX = (px: number) => x + (px / WORLD.width) * size;
+            const mapY = (py: number) => y + (py / WORLD.height) * size;
 
-            const mapY = (py: number) =>
-                y + (py / WORLD.height) * size;
-
-            // Solo componentes pendientes.
             partsRef.current.forEach(part => {
                 if (part.collected) return;
 
@@ -508,26 +564,16 @@ export default function OpportunityGame({
         };
 
         const update = (delta: number) => {
-            // Las notas históricas NO detienen el juego.
-            // Solo se detiene durante la reconstrucción.
             if (paused || puzzleOpen) return;
 
             const rover = roverRef.current;
             const keys = keysRef.current;
             const seconds = Math.min(delta / 16.67, 2);
 
-            const forward =
-                keys.has("w") || keys.has("arrowup");
-
-            const backward =
-                keys.has("s") || keys.has("arrowdown");
-
-            const left =
-                keys.has("a") || keys.has("arrowleft");
-
-            const right =
-                keys.has("d") || keys.has("arrowright");
-
+            const forward = keys.has("w") || keys.has("arrowup");
+            const backward = keys.has("s") || keys.has("arrowdown");
+            const left = keys.has("a") || keys.has("arrowleft");
+            const right = keys.has("d") || keys.has("arrowright");
             const turbo = keys.has(" ") && rover.battery > 1;
 
             const maxSpeed = turbo ? 5 : 3;
@@ -536,10 +582,7 @@ export default function OpportunityGame({
             if (backward) rover.speed -= 0.10 * seconds;
 
             rover.speed *= Math.pow(0.965, seconds);
-            rover.speed = Math.max(
-                -1.8,
-                Math.min(maxSpeed, rover.speed),
-            );
+            rover.speed = Math.max(-1.8, Math.min(maxSpeed, rover.speed));
 
             if (Math.abs(rover.speed) > 0.08) {
                 if (right) rover.angle += 0.045 * seconds;
@@ -552,17 +595,9 @@ export default function OpportunityGame({
             rover.x += Math.cos(rover.angle) * rover.speed * seconds;
             rover.y += Math.sin(rover.angle) * rover.speed * seconds;
 
-            rover.x = Math.max(
-                35,
-                Math.min(WORLD.width - 35, rover.x),
-            );
+            rover.x = Math.max(35, Math.min(WORLD.width - 35, rover.x));
+            rover.y = Math.max(35, Math.min(WORLD.height - 35, rover.y));
 
-            rover.y = Math.max(
-                35,
-                Math.min(WORLD.height - 35, rover.y),
-            );
-
-            // Colisiones.
             for (const rock of ROCKS) {
                 if (
                     Math.hypot(
@@ -575,10 +610,7 @@ export default function OpportunityGame({
                     rover.speed *= -0.25;
 
                     if (collisionCooldown <= 0) {
-                        setMessage(
-                            "OBSTÁCULO DETECTADO. BUSCA OTRA RUTA.",
-                        );
-
+                        setMessage("OBSTÁCULO DETECTADO. BUSCA OTRA RUTA.");
                         collisionCooldown = 60;
                     }
 
@@ -586,7 +618,6 @@ export default function OpportunityGame({
                 }
             }
 
-            // Consumo de energía.
             rover.battery = Math.max(
                 0,
                 rover.battery -
@@ -597,41 +628,38 @@ export default function OpportunityGame({
                 rover.speed *= 0.9;
             }
 
-            // Recuperación de componentes.
             const found = partsRef.current.find(
                 p =>
                     !p.collected &&
-                    Math.hypot(
-                        rover.x - p.x,
-                        rover.y - p.y,
-                    ) < 48,
+                    Math.hypot(rover.x - p.x, rover.y - p.y) < 48,
             );
 
             if (found) {
                 found.collected = true;
 
                 const nextParts = partsRef.current.map(p => ({ ...p }));
-
+                partsRef.current = nextParts;
                 setParts(nextParts);
+
+                const nextCount = nextParts.filter(p => p.collected).length;
+
+                updateMissionProgress("opportunity", nextCount);
 
                 setMessage(
                     `COMPONENTE RECUPERADO: ${found.name.toUpperCase()}`,
                 );
 
-                // Cada pieza activa su fragmento histórico.
+                // Muestra la historia correspondiente al componente recuperado.
                 setStoryIndex(found.id);
             }
 
-            if (collisionCooldown > 0) {
-                collisionCooldown--;
-            }
+            if (collisionCooldown > 0) collisionCooldown--;
 
             animationTime += delta;
             hudCounter++;
 
             if (hudCounter >= 8) {
                 hudCounter = 0;
-
                 setBattery(rover.battery);
                 setSpeed(Math.abs(rover.speed) * 12);
                 setBoost(turbo && forward);
@@ -639,10 +667,7 @@ export default function OpportunityGame({
         };
 
         const loop = (time: number) => {
-            const delta = lastTime
-                ? time - lastTime
-                : 16.67;
-
+            const delta = lastTime ? time - lastTime : 16.67;
             lastTime = time;
 
             update(delta);
@@ -655,13 +680,7 @@ export default function OpportunityGame({
             const key = event.key.toLowerCase();
 
             if (
-                [
-                    "arrowup",
-                    "arrowdown",
-                    "arrowleft",
-                    "arrowright",
-                    " ",
-                ].includes(key)
+                ["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)
             ) {
                 event.preventDefault();
             }
@@ -683,11 +702,9 @@ export default function OpportunityGame({
 
         return () => {
             cancelAnimationFrame(frameRef.current);
-
             window.removeEventListener("resize", resize);
             window.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("keyup", onKeyUp);
-
             keysRef.current.clear();
         };
     }, [paused, puzzleOpen]);
@@ -713,12 +730,10 @@ export default function OpportunityGame({
             <section className="opp-hud">
                 <div className="opp-stat">
                     <Battery size={19} />
-
                     <div>
                         <small>ENERGÍA</small>
                         <strong>{Math.ceil(battery)}%</strong>
                     </div>
-
                     <div className="opp-battery">
                         <span style={{ width: `${battery}%` }} />
                     </div>
@@ -726,7 +741,6 @@ export default function OpportunityGame({
 
                 <div className="opp-stat">
                     <Gauge size={19} />
-
                     <div>
                         <small>VELOCIDAD</small>
                         <strong>{Math.round(speed)} km/h</strong>
@@ -735,7 +749,6 @@ export default function OpportunityGame({
 
                 <div className="opp-stat">
                     <Satellite size={19} />
-
                     <div>
                         <small>COMPONENTES</small>
                         <strong>{collectedCount}/5</strong>
@@ -744,7 +757,6 @@ export default function OpportunityGame({
 
                 <div className="opp-progress">
                     <small>PROGRESO DE MISIÓN</small>
-
                     <div>
                         <i style={{ width: `${collectedCount * 20}%` }} />
                     </div>
@@ -782,7 +794,6 @@ export default function OpportunityGame({
                     <small>IMPULSO</small>
                 </div>
 
-                {/* Nota histórica temporal */}
                 {storyIndex !== null && (
                     <div className="opp-story-toast">
                         <section className="opp-story">
@@ -796,7 +807,6 @@ export default function OpportunityGame({
                             </span>
 
                             <h2>{STORIES[storyIndex].title}</h2>
-
                             <p>{STORIES[storyIndex].text}</p>
 
                             <div className="opp-story-counter">
@@ -814,7 +824,6 @@ export default function OpportunityGame({
             <footer className="opp-footer">
                 <div>
                     <Compass size={20} />
-
                     <section>
                         <small>OBJETIVO ACTUAL</small>
                         <strong>
@@ -878,7 +887,6 @@ export default function OpportunityGame({
                 </button>
             </div>
 
-            {/* Reconstrucción final */}
             {puzzleOpen && (
                 <div className="opp-story-backdrop">
                     <section className="opp-puzzle">
@@ -898,17 +906,12 @@ export default function OpportunityGame({
                             {PART_NAMES.map((name, index) => (
                                 <button
                                     key={name}
-                                    className={
-                                        assembled.includes(index)
-                                            ? "assembled"
-                                            : ""
-                                    }
+                                    className={assembled.includes(index) ? "assembled" : ""}
                                     onClick={() => handleAssembly(index)}
                                 >
                                     {assembled.includes(index)
                                         ? <Check />
                                         : String(index + 1).padStart(2, "0")}
-
                                     <small>{name}</small>
                                 </button>
                             ))}
@@ -919,11 +922,7 @@ export default function OpportunityGame({
                                 <button
                                     key={name}
                                     disabled={assembled.includes(index)}
-                                    className={
-                                        selectedPiece === index
-                                            ? "selected"
-                                            : ""
-                                    }
+                                    className={selectedPiece === index ? "selected" : ""}
                                     onClick={() => setSelectedPiece(index)}
                                 >
                                     <Satellite size={17} />

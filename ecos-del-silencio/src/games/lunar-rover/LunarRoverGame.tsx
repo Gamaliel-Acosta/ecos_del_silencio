@@ -19,6 +19,8 @@ import {
     completeMission,
 } from "../../services/progress.service";
 
+import { speechService } from "../../services/speech.service";
+
 import "./lunar-rover.css";
 
 interface LunarRoverGameProps {
@@ -234,12 +236,14 @@ function LunarRoverGame({
 
     const exitGame = useCallback(() => {
         keysRef.current.clear();
+        speechService.stop();
         onExit();
     }, [onExit]);
 
     const completePuzzle = useCallback(() => {
         if (assembled.length !== PART_NAMES.length) return;
 
+        speechService.stop();
         completeMission("lunar-rover");
 
         setPuzzleOpen(false);
@@ -834,14 +838,29 @@ function LunarRoverGame({
         }
     }, [collectedCount]);
 
+    // Controla cuánto tiempo permanece visible la transmisión.
     useEffect(() => {
         if (!activeStory) return;
 
         const timer = window.setTimeout(() => {
             setActiveStory(null);
-        }, 8500);
+        }, 15000);
 
         return () => window.clearTimeout(timer);
+    }, [activeStory]);
+
+    // Reproduce el efecto de apertura y después lee la nota.
+    useEffect(() => {
+        if (!activeStory) {
+            speechService.stop();
+            return;
+        }
+
+        void speechService.read(activeStory.text);
+
+        return () => {
+            speechService.stop();
+        };
     }, [activeStory]);
 
     const handleAssembly = (slot: number) => {
@@ -862,6 +881,9 @@ function LunarRoverGame({
     };
 
     const resetGame = () => {
+        // Detiene cualquier narración que siga reproduciéndose.
+        speechService.stop();
+
         // Reinicia el contador de piezas de esta misión.
         updateMissionProgress("lunar-rover", 0);
 

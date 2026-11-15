@@ -1,5 +1,6 @@
+
 import "./styles/global.css";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -20,6 +21,8 @@ import { artifacts, type Artifact } from "./data/artifacts";
 import LunarRoverGame from "./games/lunar-rover/LunarRoverGame";
 import OpportunityGame from "./games/opportunity/OpportunityGame";
 import Pioneer10Game from "./games/pioneer-10/Pioneer10Game";
+
+import { audioService } from "./services/audio.service";
 
 type Sector = "all" | "moon" | "mars" | "deep-space";
 type Screen = "terminal" | "radar" | "mission" | "game";
@@ -56,6 +59,40 @@ function App() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Artifact | null>(null);
   const [expeditionStarted, setExpeditionStarted] = useState(false);
+
+  // ========================================
+  // SISTEMA DE AUDIO
+  // ========================================
+
+  // Cambia la música dependiendo de la pantalla.
+  useEffect(() => {
+    const track =
+      screen === "terminal"
+        ? "home"
+        : screen === "radar"
+          ? "radar"
+          : "mission";
+
+    void audioService.setMusic(track);
+  }, [screen]);
+
+  // Desbloquea la reproducción cuando el usuario
+  // realiza su primera interacción con la aplicación.
+  useEffect(() => {
+    const unlockAudio = () => {
+      void audioService.unlock();
+    };
+
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+
+      audioService.stopAll();
+    };
+  }, []);
 
   const filteredArtifacts = useMemo(() => {
     return artifacts.filter((artifact) => {

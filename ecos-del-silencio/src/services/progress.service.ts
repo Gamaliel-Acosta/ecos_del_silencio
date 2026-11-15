@@ -45,9 +45,7 @@ export const getProgress = (): GlobalProgress => {
     try {
         const saved = localStorage.getItem(STORAGE_KEY);
 
-        if (!saved) {
-            return createInitialProgress();
-        }
+        if (!saved) return createInitialProgress();
 
         const parsed = JSON.parse(saved) as GlobalProgress;
         const initial = createInitialProgress();
@@ -64,7 +62,11 @@ export const getProgress = (): GlobalProgress => {
 };
 
 const saveProgress = (progress: GlobalProgress): void => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    } catch {
+        console.warn("No fue posible guardar el progreso.");
+    }
 };
 
 export const updateMissionProgress = (
@@ -80,7 +82,7 @@ export const updateMissionProgress = (
         ...current,
         collectedParts: Math.max(
             0,
-            Math.min(collectedParts, current.totalParts),
+            Math.min(Math.floor(collectedParts), current.totalParts),
         ),
         updatedAt: Date.now(),
     };
@@ -99,7 +101,6 @@ export const completeMission = (
 
     progress.missions[missionId] = {
         ...current,
-        collectedParts: current.totalParts,
         completed: true,
         updatedAt: Date.now(),
     };
@@ -112,6 +113,25 @@ export const getMissionProgress = (
     missionId: MissionId,
 ): MissionProgress => {
     return getProgress().missions[missionId];
+};
+
+export const resetMissionProgress = (
+    missionId: MissionId,
+): GlobalProgress => {
+    const progress = getProgress();
+    const current = progress.missions[missionId];
+
+    if (!current) return progress;
+
+    progress.missions[missionId] = {
+        ...current,
+        collectedParts: 0,
+        completed: false,
+        updatedAt: Date.now(),
+    };
+
+    saveProgress(progress);
+    return progress;
 };
 
 export const getGlobalPercentage = (): number => {
@@ -134,5 +154,9 @@ export const getGlobalPercentage = (): number => {
 };
 
 export const resetProgress = (): void => {
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch {
+        console.warn("No fue posible reiniciar el progreso.");
+    }
 };
