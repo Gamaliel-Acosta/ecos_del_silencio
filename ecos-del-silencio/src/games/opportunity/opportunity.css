@@ -1,0 +1,541 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+.opportunity-game {
+  min-height: 100vh;
+  background: #100d0c;
+  color: #f5e6d7;
+  font-family: 'Rajdhani', sans-serif;
+  padding: 18px;
+}
+
+.opportunity-header,
+.opp-hud,
+.opp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.opportunity-header {
+  min-height: 65px;
+  border-bottom: 1px solid #603e32;
+  padding-bottom: 14px;
+}
+
+.opp-exit,
+.opp-footer button {
+  background: #251712;
+  border: 1px solid #87533b;
+  color: #f2c6a5;
+  padding: 11px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+}
+
+.opp-title {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+  gap: 5px;
+}
+
+.opp-title span,
+.opp-story-kicker {
+  color: #e29a70;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.opp-title strong {
+  font-size: 20px;
+  letter-spacing: 3px;
+}
+
+.opp-live {
+  color: #a8e7a5;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opp-live i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #78ed83;
+  box-shadow: 0 0 12px #78ed83;
+}
+
+.opp-hud {
+  padding: 17px 0;
+  flex-wrap: wrap;
+}
+
+.opp-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e9ad84;
+  min-width: 125px;
+}
+
+.opp-stat div:not(.opp-battery) {
+  display: flex;
+  flex-direction: column;
+}
+
+.opp-stat small,
+.opp-progress small,
+.opp-footer small {
+  color: #c18d6d;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.opp-stat strong {
+  color: #fff0e3;
+  font-size: 18px;
+}
+
+.opp-battery {
+  width: 65px;
+  height: 6px;
+  background: #493127;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.opp-battery span,
+.opp-progress i {
+  display: block;
+  height: 100%;
+  background: #e9a16d;
+  transition: width .2s;
+}
+
+.opp-progress {
+  width: 180px;
+}
+
+.opp-progress div {
+  height: 6px;
+  margin-top: 7px;
+  background: #493127;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.opp-game-area {
+  position: relative;
+  height: min(67vh, 620px);
+  min-height: 390px;
+  border: 1px solid #85513b;
+  overflow: hidden;
+  background: #9b6246;
+}
+
+.opp-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.opp-location,
+.opp-message,
+.opp-controls,
+.opp-boost {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(25, 12, 8, .82);
+  padding: 10px 13px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+
+.opp-location {
+  top: 15px;
+  left: 15px;
+  color: #f4c29f;
+}
+
+.opp-message {
+  bottom: 15px;
+  left: 15px;
+  color: #b9f5ff;
+  max-width: 65%;
+}
+
+.opp-boost {
+  bottom: 65px;
+  left: 15px;
+  color: #ffe49b;
+}
+
+.opp-controls {
+  right: 15px;
+  bottom: 15px;
+  flex-wrap: wrap;
+  max-width: 240px;
+  color: #f5c6a6;
+}
+
+.opp-controls small {
+  color: #bd967d;
+  font-size: 9px;
+}
+
+.opp-footer {
+  padding-top: 16px;
+}
+
+.opp-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e8ad84;
+}
+
+.opp-footer section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opp-footer strong {
+  color: #f5e6d7;
+  font-size: 15px;
+}
+
+.opp-touch {
+  display: none;
+}
+
+/* Notas históricas flotantes */
+
+.opp-story-toast {
+  position: absolute;
+  z-index: 10;
+  top: 75px;
+  right: 18px;
+  width: min(370px, calc(100% - 36px));
+  pointer-events: none;
+  animation: opp-story-enter .45s ease-out;
+}
+
+.opp-story-toast .opp-story {
+  width: 100%;
+  padding: 20px;
+  background: rgba(20, 15, 12, .92);
+  border: 1px solid rgba(140, 243, 255, .65);
+  box-shadow: 0 0 25px rgba(118, 239, 255, .12);
+  backdrop-filter: blur(8px);
+  animation: opp-story-disappear 5.2s linear forwards;
+}
+
+.opp-story-toast .opp-story-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.opp-story-toast .opp-story-year {
+  display: block;
+  margin-top: 13px;
+  color: #e6a071;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+}
+
+.opp-story-toast .opp-story h2 {
+  color: #fff0e3;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  margin: 9px 0;
+}
+
+.opp-story-toast .opp-story p {
+  color: #d4b8a6;
+  font-size: 15px;
+  line-height: 1.4;
+  margin: 8px 0;
+}
+
+.opp-story-toast .opp-story-counter {
+  margin: 13px 0 8px;
+  color: #e9a16d;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+}
+
+.opp-story-timer {
+  height: 3px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+
+.opp-story-timer i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #8cf3ff;
+  transform-origin: left;
+  animation: opp-story-progress 5.2s linear forwards;
+}
+
+@keyframes opp-story-enter {
+  from {
+    opacity: 0;
+    transform: translateX(25px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes opp-story-disappear {
+  0%, 85% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes opp-story-progress {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Reconstrucción */
+
+.opp-story-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(8, 7, 7, .88);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.opp-puzzle {
+  width: min(600px, 100%);
+  background: #1b1512;
+  border: 1px solid #a16a4b;
+  padding: 30px;
+  box-shadow: 0 0 50px rgba(209, 112, 65, .15);
+}
+
+.opp-story-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.opp-puzzle h2 {
+  color: #fff0e3;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(18px, 3vw, 25px);
+  margin: 12px 0;
+}
+
+.opp-puzzle p {
+  color: #d4b8a6;
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+.opp-puzzle-count {
+  margin: 25px 0;
+  color: #e9a16d;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+}
+
+.opp-puzzle-board,
+.opp-puzzle-pieces {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.opp-puzzle-board button,
+.opp-puzzle-pieces button {
+  padding: 13px;
+  background: #2a201b;
+  color: #f5c5a1;
+  border: 1px solid #79513b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.opp-puzzle-board button small {
+  font-size: 12px;
+}
+
+.opp-puzzle-board button.assembled {
+  border-color: #76d69a;
+  color: #76d69a;
+}
+
+.opp-puzzle-pieces button.selected {
+  background: #69412c;
+  border-color: #e9a16d;
+}
+
+.opp-puzzle-pieces button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+/* Mensaje de reconstrucción terminada */
+
+.opp-complete-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #76d69a;
+  background: rgba(118, 214, 154, .08);
+  color: #76d69a;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  text-align: center;
+}
+
+.opp-complete-message span {
+  color: #d4b8a6;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+}
+
+/* Adaptación para pantallas pequeñas */
+
+@media (max-width: 800px) {
+  .opportunity-header {
+    flex-wrap: wrap;
+  }
+
+  .opp-hud {
+    justify-content: flex-start;
+  }
+
+  .opp-game-area {
+    height: 65vh;
+  }
+
+  .opp-touch {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+  }
+
+  .opp-touch button {
+    width: 48px;
+    height: 43px;
+    background: #38231b;
+    border: 1px solid #a16a4b;
+    color: white;
+    font-size: 18px;
+    touch-action: none;
+  }
+
+  .opp-touch div {
+    display: flex;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 520px) {
+  .opportunity-game {
+    padding: 9px;
+  }
+
+  .opp-title strong {
+    font-size: 15px;
+  }
+
+  .opp-live {
+    display: none;
+  }
+
+  .opp-game-area {
+    min-height: 420px;
+  }
+
+  .opp-controls {
+    display: none;
+  }
+
+  .opp-message {
+    max-width: 85%;
+    font-size: 8px;
+  }
+
+  .opp-footer strong {
+    font-size: 12px;
+  }
+
+  .opp-puzzle-board,
+  .opp-puzzle-pieces {
+    grid-template-columns: 1fr;
+  }
+
+  .opp-puzzle {
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .opp-puzzle p {
+    font-size: 16px;
+  }
+
+  .opp-story-toast {
+    top: 55px;
+    right: 8px;
+    width: calc(100% - 16px);
+  }
+
+  .opp-story-toast .opp-story {
+    padding: 14px;
+  }
+
+  .opp-story-toast .opp-story h2 {
+    font-size: 14px;
+  }
+
+  .opp-story-toast .opp-story p {
+    font-size: 13px;
+  }
+}
