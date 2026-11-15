@@ -17,7 +17,6 @@ import {
     getMissionProgress,
     updateMissionProgress,
     completeMission,
-    resetMissionProgress,
 } from "../../services/progress.service";
 
 import "./lunar-rover.css";
@@ -185,15 +184,16 @@ const INITIAL_PARTS: Part[] = generateInitialParts();
 function getInitialMissionParts(): Part[] {
     const progress = getMissionProgress("lunar-rover");
 
-    return INITIAL_PARTS.map((part) => ({
+    return INITIAL_PARTS.map((part, index) => ({
         ...part,
-        collected: progress.collectedParts.includes(
-            `lunar-rover-${part.id}`
-        ),
+        collected: index < progress.collectedParts,
     }));
 }
 
-function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
+function LunarRoverGame({
+    onExit,
+    onComplete,
+}: LunarRoverGameProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const roverRef = useRef<Rover>({
@@ -228,7 +228,9 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
 
     const [paused, setPaused] = useState(false);
 
-    const collectedCount = parts.filter((part) => part.collected).length;
+    const collectedCount = parts.filter(
+        (part) => part.collected
+    ).length;
 
     const exitGame = useCallback(() => {
         keysRef.current.clear();
@@ -276,7 +278,10 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             notificationTimer = 180;
         };
 
-        const drawBackground = (cameraX: number, cameraY: number) => {
+        const drawBackground = (
+            cameraX: number,
+            cameraY: number,
+        ) => {
             ctx.fillStyle = "#171b20";
             ctx.fillRect(0, 0, width, height);
 
@@ -323,7 +328,13 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
 
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(crater.x, crater.y, crater.radius, 0, Math.PI * 2);
+                ctx.arc(
+                    crater.x,
+                    crater.y,
+                    crater.radius,
+                    0,
+                    Math.PI * 2,
+                );
                 ctx.fill();
 
                 ctx.strokeStyle = "rgba(213,201,175,.16)";
@@ -389,7 +400,8 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
         const drawPart = (part: Part) => {
             if (part.collected) return;
 
-            const pulse = 1 + Math.sin(animationTime * 0.004 + part.id) * 0.12;
+            const pulse =
+                1 + Math.sin(animationTime * 0.004 + part.id) * 0.12;
 
             ctx.save();
             ctx.translate(part.x, part.y);
@@ -476,7 +488,10 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             ctx.restore();
         };
 
-        const drawRadar = (rover: Rover, visibleParts: Part[]) => {
+        const drawRadar = (
+            rover: Rover,
+            visibleParts: Part[],
+        ) => {
             const radarSize = 132;
             const x = width - radarSize - 22;
             const y = height - radarSize - 22;
@@ -516,8 +531,11 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             ctx.lineTo(x + radarSize - 8, y + radarSize / 2);
             ctx.stroke();
 
-            const mapX = (px: number) => x + (px / WORLD.width) * radarSize;
-            const mapY = (py: number) => y + (py / WORLD.height) * radarSize;
+            const mapX = (px: number) =>
+                x + (px / WORLD.width) * radarSize;
+
+            const mapY = (py: number) =>
+                y + (py / WORLD.height) * radarSize;
 
             visibleParts.forEach((part) => {
                 if (part.collected) return;
@@ -539,18 +557,24 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             ctx.restore();
         };
 
-        const draw = (time: number) => {
+        const draw = (_time: number) => {
             const rover = roverRef.current;
             const visibleParts = partsRef.current;
 
             const cameraX = Math.max(
                 0,
-                Math.min(WORLD.width - width, rover.x - width / 2),
+                Math.min(
+                    WORLD.width - width,
+                    rover.x - width / 2,
+                ),
             );
 
             const cameraY = Math.max(
                 0,
-                Math.min(WORLD.height - height, rover.y - height / 2),
+                Math.min(
+                    WORLD.height - height,
+                    rover.y - height / 2,
+                ),
             );
 
             drawBackground(cameraX, cameraY);
@@ -561,8 +585,11 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             visibleParts.forEach(drawPart);
             drawRover(rover);
 
-            const lightX = rover.x + Math.cos(rover.angle) * 55;
-            const lightY = rover.y + Math.sin(rover.angle) * 55;
+            const lightX =
+                rover.x + Math.cos(rover.angle) * 55;
+
+            const lightY =
+                rover.y + Math.sin(rover.angle) * 55;
 
             const light = ctx.createRadialGradient(
                 lightX,
@@ -593,11 +620,20 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             const keys = keysRef.current;
             const seconds = Math.min(delta / 16.67, 2);
 
-            const forward = keys.has("w") || keys.has("arrowup");
-            const backward = keys.has("s") || keys.has("arrowdown");
-            const left = keys.has("a") || keys.has("arrowleft");
-            const right = keys.has("d") || keys.has("arrowright");
-            const turbo = keys.has(" ") && rover.battery > 1;
+            const forward =
+                keys.has("w") || keys.has("arrowup");
+
+            const backward =
+                keys.has("s") || keys.has("arrowdown");
+
+            const left =
+                keys.has("a") || keys.has("arrowleft");
+
+            const right =
+                keys.has("d") || keys.has("arrowright");
+
+            const turbo =
+                keys.has(" ") && rover.battery > 1;
 
             const maxSpeed = turbo ? 5.2 : 3.1;
 
@@ -605,21 +641,37 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             if (backward) rover.speed -= 0.10 * seconds;
 
             rover.speed *= Math.pow(0.965, seconds);
-            rover.speed = Math.max(-1.8, Math.min(maxSpeed, rover.speed));
+            rover.speed = Math.max(
+                -1.8,
+                Math.min(maxSpeed, rover.speed),
+            );
 
             if (Math.abs(rover.speed) > 0.08) {
-                rover.angle += (right ? 1 : 0) * 0.045 * seconds;
-                rover.angle -= (left ? 1 : 0) * 0.045 * seconds;
+                rover.angle +=
+                    (right ? 1 : 0) * 0.045 * seconds;
+
+                rover.angle -=
+                    (left ? 1 : 0) * 0.045 * seconds;
             }
 
             const oldX = rover.x;
             const oldY = rover.y;
 
-            rover.x += Math.cos(rover.angle) * rover.speed * seconds;
-            rover.y += Math.sin(rover.angle) * rover.speed * seconds;
+            rover.x +=
+                Math.cos(rover.angle) * rover.speed * seconds;
 
-            rover.x = Math.max(35, Math.min(WORLD.width - 35, rover.x));
-            rover.y = Math.max(35, Math.min(WORLD.height - 35, rover.y));
+            rover.y +=
+                Math.sin(rover.angle) * rover.speed * seconds;
+
+            rover.x = Math.max(
+                35,
+                Math.min(WORLD.width - 35, rover.x),
+            );
+
+            rover.y = Math.max(
+                35,
+                Math.min(WORLD.height - 35, rover.y),
+            );
 
             for (const rock of ROCKS) {
                 const dx = rover.x - rock.x;
@@ -671,24 +723,33 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             partsRef.current.forEach((part) => {
                 if (part.collected) return;
 
-                if (Math.hypot(rover.x - part.x, rover.y - part.y) < 48) {
+                if (
+                    Math.hypot(
+                        rover.x - part.x,
+                        rover.y - part.y,
+                    ) < 48
+                ) {
                     part.collected = true;
 
-                    registerPiece(
+                    const collected = partsRef.current.filter(
+                        (item) => item.collected,
+                    ).length;
+
+                    updateMissionProgress(
                         "lunar-rover",
-                        `lunar-rover-${part.id}`,
-                        5,
-                        5
+                        collected,
                     );
 
                     setParts(
-                        partsRef.current.map((item) => ({ ...item }))
+                        partsRef.current.map((item) => ({
+                            ...item,
+                        })),
                     );
 
                     setActiveStory(LUNAR_STORIES[part.id]);
 
                     notify(
-                        `COMPONENTE RECUPERADO: ${part.name.toUpperCase()}`
+                        `COMPONENTE RECUPERADO: ${part.name.toUpperCase()}`,
                     );
                 }
             });
@@ -697,7 +758,6 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             if (collisionCooldown > 0) collisionCooldown--;
 
             animationTime += delta;
-
             hudCounter++;
 
             if (hudCounter >= 8) {
@@ -709,7 +769,9 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
         };
 
         const loop = (time: number) => {
-            const delta = lastTime ? time - lastTime : 16.67;
+            const delta = lastTime
+                ? time - lastTime
+                : 16.67;
 
             lastTime = time;
 
@@ -723,8 +785,13 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             const key = event.key.toLowerCase();
 
             if (
-                ["arrowup", "arrowdown", "arrowleft", "arrowright", " "]
-                    .includes(key)
+                [
+                    "arrowup",
+                    "arrowdown",
+                    "arrowleft",
+                    "arrowright",
+                    " ",
+                ].includes(key)
             ) {
                 event.preventDefault();
             }
@@ -782,7 +849,9 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
 
         if (selectedPiece === slot) {
             setAssembled((current) =>
-                current.includes(slot) ? current : [...current, slot],
+                current.includes(slot)
+                    ? current
+                    : [...current, slot],
             );
 
             setSelectedPiece(null);
@@ -793,7 +862,8 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
     };
 
     const resetGame = () => {
-        resetMissionProgress("lunar-rover");
+        // Reinicia el contador de piezas de esta misión.
+        updateMissionProgress("lunar-rover", 0);
 
         roverRef.current = {
             x: 180,
@@ -814,7 +884,7 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
             INITIAL_PARTS.map((part) => ({
                 ...part,
                 collected: false,
-            }))
+            })),
         );
 
         setBattery(100);
@@ -1026,9 +1096,13 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
                                 <button
                                     key={name}
                                     className={`puzzle-slot ${
-                                        assembled.includes(index) ? "assembled" : ""
+                                        assembled.includes(index)
+                                            ? "assembled"
+                                            : ""
                                     } ${
-                                        selectedPiece === index ? "selected" : ""
+                                        selectedPiece === index
+                                            ? "selected"
+                                            : ""
                                     }`}
                                     onClick={() => handleAssembly(index)}
                                 >
@@ -1051,7 +1125,9 @@ function LunarRoverGame({ onExit, onComplete }: LunarRoverGameProps) {
                                     key={name}
                                     disabled={assembled.includes(index)}
                                     className={
-                                        selectedPiece === index ? "selected" : ""
+                                        selectedPiece === index
+                                            ? "selected"
+                                            : ""
                                     }
                                     onClick={() => setSelectedPiece(index)}
                                 >
